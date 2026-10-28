@@ -1,0 +1,34 @@
+# Local presentation build files, slide renders, and validation reports
+/.proposal-build/
+/.codex-finalizer/
+
+# Python environments and generated caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.coverage
+.coverage.*
+htmlcov/
+
+# JavaScript dependencies used by local tooling
+node_modules/
+
+# Local credentials (keep example configuration files versioned)
+.env
+.env.*
+!.env.example
+!.env.*.example
+.streamlit/secrets.toml
+
+# macOS metadata and Office temporary lock files
+.DS_Store
+._*
+~$*
+
+# Final deliverables such as output/OsteoGuard_Proposal.pptx are kept in Git.
+# Add specific generated data/model directories here when their layout is defined.
