@@ -49,12 +49,86 @@
 
 ## 二、真實資料下載與 WHO T-score 實證驗算結果（可直接納入報告佐證！）
 
-我們已從美國 CDC NCHS 伺服器下載 NHANES 2017–2020 Pre-pandemic 四大原始資料檔（存放於 `data/raw/`），並透過 `src/data_processor.py` 完成合併與驗算：
+我們已從美國 CDC NCHS 伺服器下載 NHANES 2017–2020 Pre-pandemic 四大原始資料檔（存放於 `data/raw/`），並透過 `src/data_processor.py` 完成合併與驗算。
 
-1. **`P_DXXFEM.xpt`（股骨 DXA 掃描）**：原始記錄 **4,593 筆**，篩選完成有效掃描（具備完整 `DXXNKBMD` 與 `DXXOFBMD`）後，**精確為 3,545 筆**（與我們 Proposal 寫的數字 100% 吻合！）。
-2. **`P_DEMO.xpt`（人口學資料）**：串聯取得每位受試者的 **性別（`RIAGENDR`）** 與 **年齡（`RIDAGEYR`）**。
-3. **`P_BMX.xpt`（身體測量資料）**：串聯取得 **身高（`BMXHT`）**、**體重（`BMXWT`）** 與 **`BMXBMI`**。
-4. **`P_OSQ.xpt`（骨質疏鬆與骨折問卷）**：串聯取得 **醫師是否曾告知患有骨質疏鬆（`OSQ060`）** 與 **是否曾發生髖部骨折（`OSQ010A`）**。
+### 📂 2.1 `data/raw/` 原始資料檔用途與核心欄位一覽表
+
+四個 `.xpt`（SAS Transport Format）檔案皆以受試者唯一序號 **`SEQN`（Respondent Sequence Number）** 作為主鍵（Primary Key / Foreign Key）進行一對一（1:1）關聯：
+
+| 檔案名稱 (`data/raw/`) | NHANES 官方資料模組 | 檔案大小 | 總筆數 × 總欄位數 | 本專題擷取之核心欄位 | 在 OsteoGuard AI Agent 中的具體用途 |
+| :--- | :--- | :---: | :---: | :--- | :--- |
+| **`P_DXXFEM.xpt`** | **Examination Data**<br>股骨雙能量 X 光吸光測定<br>*(DXA - Femur)* | `721 KB` | **4,593 筆 × 20 欄**<br>*(有效完整掃描：3,545 筆)* | • `SEQN`（受試者編號）<br>• `DXAFMRST`（掃描有效狀態碼）<br>• `DXXOFBMD` / `DXXOFBMC` / `DXXOFA`（全髖部）<br>• `DXXNKBMD` / `DXXNKBMC` / `DXXNKA`（股骨頸）<br>• `DXXTRBMD` / `DXXTRBMC` / `DXXTRA`（大轉子）<br>• `DXXINBMD` / `DXXINBMC` / `DXXINA`（轉子間） | **[核心主表]** 提供近端股骨四個解剖部位的骨密度（BMD）、骨礦物質含量（BMC）與骨骼面積（Area），用於**換算 WHO T-score** 與建立骨骼幾何特徵。 |
+| **`P_DEMO.xpt`** | **Demographics Data**<br>人口學統計與背景資料<br>*(Demographic Variables)* | `3.4 MB` | **15,560 筆 × 29 欄** | • `SEQN`（受試者編號）<br>• `RIAGENDR`（性別：`1`=男, `2`=女）<br>• `RIDAGEYR`（檢測時年齡，歲）<br>• `RIDRETH3`（種族與族裔分類） | **[年齡與性別校準]** 用於判斷臨床準則適用分界（**50 歲以上看 T-score vs. 50 歲以下看 Z-score**），並作為機器學習捕捉高齡/停經骨流失趨勢的重要特徵。 |
+| **`P_BMX.xpt`** | **Examination Data**<br>身體測量指標<br>*(Body Measures)* | `2.4 MB` | **14,300 筆 × 22 欄** | • `SEQN`（受試者編號）<br>• `BMXWT`（體重，kg）<br>• `BMXHT`（身高，cm）<br>• `BMXBMI`（身體質量指數，$\text{kg/m}^2$） | **[體型與力學負荷校正]** 低體重（低 BMI）是骨鬆與髖部骨折的獨立高危因子；結合身高體重與 `Bone Area` 可校正二維 DXA 投影面積造成的體型偏差。 |
+| **`P_OSQ.xpt`** | **Questionnaire Data**<br>骨質疏鬆與骨折病史問卷<br>*(Osteoporosis Questionnaire)* | `3.7 MB` | **4,987 筆 × 97 欄** | • `SEQN`（受試者編號）<br>• `OSQ060`（醫師是否曾告知患有骨質疏鬆：`1`=是, `2`=否）<br>• `OSQ010A`（是否曾發生髖部骨折：`1`=是, `2`=否） | **[臨床病史對照與黑數偵測]** 對照客觀 DXA `T-score` 與主觀就醫史，揪出**「已達骨鬆標準卻從未確診之沉默患者（Silent Osteoporosis）」**，並識別曾發生脆弱性骨折之極高危個案。 |
+
+---
+
+### 🔗 2.2 四大資料表關聯架構圖（Entity-Relationship & Data Fusion Diagram）
+
+以下使用原生 Markdown Mermaid 語法繪製 **實體關聯圖（ER Diagram）** 與 **資料串聯管線圖（Data Join Pipeline）**，清楚呈現四個檔案如何透過主鍵 `SEQN` 關聯並匯流成最終分析表：
+
+#### (A) 實體關聯圖（ER Diagram — 以 `SEQN` 為核心關聯鍵）
+```mermaid
+erDiagram
+    P_DEMO ||--o| P_DXXFEM : "1:1 依 SEQN 串聯 (提供年齡/性別/族裔)"
+    P_BMX  ||--o| P_DXXFEM : "1:1 依 SEQN 串聯 (提供身高/體重/BMI)"
+    P_OSQ  ||--o| P_DXXFEM : "1:1 依 SEQN 串聯 (提供骨鬆確診與骨折病史)"
+
+    P_DXXFEM {
+        int SEQN PK "受試者唯一識別碼 (N=4,593 -> 有效 3,545)"
+        int DXAFMRST "股骨 DXA 掃描狀態碼 (1=有效完成)"
+        float DXXOFBMD "全髖部 BMD (g/cm2) -> 換算 Total T-score"
+        float DXXOFBMC "全髖部 BMC (g)"
+        float DXXOFA "全髖部 Bone Area (cm2)"
+        float DXXNKBMD "股骨頸 BMD (g/cm2) -> 換算 Neck T-score"
+        float DXXNKBMC "股骨頸 BMC (g)"
+        float DXXNKA "股骨頸 Bone Area (cm2)"
+        float DXXTRBMD "大轉子 BMD (g/cm2)"
+        float DXXINBMD "轉子間 BMD (g/cm2)"
+    }
+
+    P_DEMO {
+        int SEQN PK "受試者唯一識別碼 (N=15,560)"
+        int RIAGENDR "性別 (1=Male, 2=Female)"
+        int RIDAGEYR "年齡 (Years)"
+        int RIDRETH3 "種族/族裔代碼"
+    }
+
+    P_BMX {
+        int SEQN PK "受試者唯一識別碼 (N=14,300)"
+        float BMXWT "體重 Weight (kg)"
+        float BMXHT "身高 Standing Height (cm)"
+        float BMXBMI "身體質量指數 BMI (kg/m2)"
+    }
+
+    P_OSQ {
+        int SEQN PK "受試者唯一識別碼 (N=4,987)"
+        int OSQ060 "醫師曾告知有骨質疏鬆 (1=Yes, 2=No)"
+        int OSQ010A "曾發生髖部骨折 (1=Yes, 2=No)"
+    }
+```
+
+#### (B) 資料串聯與特徵衍生流程圖（Data Merge & T-score Derivation Flow）
+```mermaid
+flowchart LR
+    subgraph RAW ["📂 data/raw/ (NHANES 2017–2020 原始 XPT 檔)"]
+        F["🦴 P_DXXFEM.xpt<br/>股骨 DXA 檢測主表<br/>(4,593 筆)"]
+        D["👤 P_DEMO.xpt<br/>人口學資料表<br/>(15,560 筆)"]
+        B["📏 P_BMX.xpt<br/>身體測量資料表<br/>(14,300 筆)"]
+        O["📋 P_OSQ.xpt<br/>骨鬆與骨折問卷表<br/>(4,987 筆)"]
+    end
+
+    F --> FILTER["篩選有效完成掃描<br/>(DXXNKBMD & DXXOFBMD 非空值)<br/>👉 N = 3,545 筆"]
+    FILTER --> JOIN{"🔑 Left Join<br/>on SEQN"}
+    D -- "串聯 RIAGENDR, RIDAGEYR" --> JOIN
+    B -- "串聯 BMXWT, BMXHT, BMXBMI" --> JOIN
+    O -- "串聯 OSQ060, OSQ010A" --> JOIN
+
+    JOIN --> CALC["🧮 WHO T-score 換算與臨床分級<br/>• T_Neck = (DXXNKBMD - 0.858) / 0.120<br/>• T_Total = (DXXOFBMD - 0.942) / 0.122<br/>• Min_T_score = min(T_Neck, T_Total)"]
+
+    CALC --> OUT["✅ data/processed/<br/>nhanes_dxa_femur_merged_with_tscore.csv<br/>(3,545 筆 × 20 個完整特徵與標籤欄位)"]
+```
 
 ### 📊 表 1：NHANES 2017–2020 有效受試者（$N = 3,545$）之 WHO T-score 診斷分佈統計
 
