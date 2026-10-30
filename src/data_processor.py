@@ -75,8 +75,11 @@ def read_xpt(filepath):
         cur += row_len
     return vars_info, rows
 
-base_dir = "/Users/leolin/Documents/NCHU_Programs/nchu-bone-health-agent/data/raw"
-processed_dir = "/Users/leolin/Documents/NCHU_Programs/nchu-bone-health-agent/data/processed"
+import os
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+base_dir = os.path.join(PROJECT_ROOT, "data", "raw")
+processed_dir = os.path.join(PROJECT_ROOT, "data", "processed")
 
 print("Reading XPT files using pure Python parser...")
 fem_vars, fem_rows = read_xpt(f"{base_dir}/P_DXXFEM.xpt")
