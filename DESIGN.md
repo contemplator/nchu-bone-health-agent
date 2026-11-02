@@ -23,74 +23,80 @@
 ## 2. System Requirements（系統需求規格）
 
 ### 2.1 Functional Requirements（功能性需求）
-- **FR-01 資料輸入與驗證（Data Input & Validation）**：支援使用者透過 Web 介面輸入或上傳股骨 DXA 檢測指標（BMD、BMC、Bone Area），並自動檢核數值完整性與生理合理性。
-- **FR-02 特徵工程與多模型預測（Feature Engineering & ML Prediction）**：自動計算衍生骨骼結構特徵，並呼叫預訓練之 Logistic Regression、Random Forest 與 XGBoost 模型進行骨質疏鬆風險預測與分級。
-- **FR-03 可解釋性 AI 分析（Explainable AI - SHAP）**：針對單一受試者的預測結果計算 SHAP 值，量化各解剖部位（如 Femoral Neck BMD vs. Total Femur BMD）對風險的正負向貢獻。
-- **FR-04 骨質疏鬆風險分級與骨折預警（Risk Stratification & Fracture Warning）**：整合 ML 預測機率與 WHO 骨質疏鬆診斷標準，進行風險分級並針對高風險部位發出骨折預警。
-- **FR-05 醫療知識庫推理與個人化建議生成（Domain Reasoning & Personalized Advice）**：結合骨鬆知識庫、分級運動建議與鈣/維生素 D 營養指引，生成符合安全邊界的個人化健康管理報告。
-- **FR-06 智慧問答互動（Interactive AI Agent Q&A）**：提供多輪自然語言對話功能，解答使用者針對檢測報告、飲食替代方案與安全運動方式的追問。
+- **FR-01 門診快速輸入與多源資料驗證（Clinical Case Input & Validation）**：支援骨科與神外醫師於 15 秒內輸入個案基本資料、預計手術類型、DXA 骨密指標（BMD/BMC/Area）、骨折與健保共病史，以及用藥紀錄；自動檢核生理合理性與 DXA 假影。
+- **FR-02 特徵工程與多模型預測（Feature Engineering & ML Prediction）**：自動計算跨部位幾何比值特徵與 BMI，呼叫預訓練之 Logistic Regression、Random Forest 與 XGBoost 進行 OSQ060 自述告知史分類；臨床 DXA 判讀另行呈現。
+- **FR-03 可解釋性 AI 分析（Explainable AI - SHAP）**：針對個別病例推論計算 SHAP 特徵貢獻度，繪製分類特徵貢獻圖，並列原始量測、模型任務與限制，不將 SHAP 等同骨強度或未來骨折風險。
+- **FR-04 骨科與神外圍術期螺釘鬆脫預警（Perioperative Screw Loosening Warning）**：針對預計接受脊椎融合內固定或人工關節置換之骨鬆個案，自動觸發椎弓根螺釘鬆脫與內固定失敗高風險預警，建議術前先期促骨生成或術中骨水泥螺釘強化。
+- **FR-05 台灣健保第 5.6 節用藥合規審核（Taiwan NHI Section 5.6 Compliance Check）**：比對健保署公開之 5.6.1～5.6.3 給付條款，自動判別第一線抗骨流失劑（含未骨折高危初級預防）與第二線促骨生成劑適應症，提示漏驗項目，防範整筆放大核扣。
+- **FR-06 長程接續治療時間軸與換藥甘特圖（Sequential Therapy & Drug Switch Gantt）**：視覺化標示目前療程進度、預計下次施打日期（含 Prolia 逾期斷藥反彈紅色警報），以及 Evenity（12 個月）/ Forteo（2 年）到期強制換藥期程。
+- **FR-07 AI Clinical Copilot 與病患溝通圖卡生成（Clinical Copilot & Patient Cards）**：結合牙科拔牙 MRONJ 安全護欄、分級運動與鈣/維生素 D 指南，一鍵生成病患看得懂的白話骨折圖卡，並匯出門診 SOAP 結構化病歷摘要。
+
+> 本期功能優先序與產出對照見 README「本期功能優先序」：衛教／文件 → 給付核對 → 追蹤 → 術式提醒 → 人工複查；模型訓練及統計圖表先行完成。
 
 ### 2.2 Non-Functional Requirements（非功能性需求）
-- **NFR-01 可解釋性與透明度（Explainability）**：每一項風險判定皆須附上 SHAP 特徵依據與 WHO 準則來源，拒絕無根據的黑箱結論。
-- **NFR-02 醫療安全性（Clinical Safety Guardrails）**：對高骨折風險者嚴格過濾高衝擊運動建議，並明確標示「本系統為健康管理與決策支援工具，不取代專科醫師臨床診斷與處方」。
-- **NFR-03 模組化與可重現性（Modularity & Reproducibility）**：資料處理、模型訓練、SHAP 解釋、Agent 推理與前端介面採解耦設計，確保實驗結果可完整重現。
+- **NFR-01 可解釋性與透明度（Explainability）**：分開呈現模型 SHAP 歸因、DXA 判讀及法規依據，清楚標示來源、缺件與限制；不以透明度保證使用者信任或 100% 正確。
+- **NFR-02 臨床安全性與法律邊界（Clinical Safety & Legal Guardrails — Human-in-the-Loop）**：依據《醫師法》與《醫療法》，AI 絕不直接無授權寫入醫院法定電子病歷，而是扮演「病歷輔助草擬者（Clinical Drafting Scribe）」，自動產出結構化健保加簽審查理由草稿，供主治醫師過目審核後一鍵帶入並親自數位簽章；對高骨折風險者強制過濾高衝擊運動與脊椎過度彎曲動作；拔牙前啟動 MRONJ 照會護欄；明確標示本系統為輔助決策支援工具（CDSS），不取代臨床醫師獨立處方與手術決策權。
+- **NFR-03 模組化與可維護性（Modularity & Maintainability）**：資料前處理、ML 模型、SHAP 解釋、健保法規引擎、用藥甘特圖演算法與前端介面採高內聚低耦合設計，便於法規更新與跨科模組擴充。
 
 ---
 
 ## 3. System Architecture（系統架構設計）
 
-本系統採用六層式架構（Data Layer、Analytics Layer、AI Layer、Domain Knowledge、Reasoning Layer、Application Layer），並對應 Domain AI Agent 之 **①–⑧ 核心功能模組**：
+本系統採用六層式架構（Data Layer、Analytics Layer、AI Layer、Domain Knowledge、Reasoning Layer、Application Layer），並嚴格對應 Domain AI Agent 之 **①–⑧ 核心功能模組**：
 
 ```mermaid
 flowchart TD
 
-A["① 使用者 User"] --> B["② OsteoGuard AI Agent (Streamlit UI & Agent Router)"]
+A["① 使用者 User (骨科/神外醫師、個管師與病患)"] --> B["② OsteoGuard AI Agent (CDSS 臨床儀表板互動入口)"]
 
-subgraph Data_Layer ["④ Data Layer (資料層)"]
-C["NHANES DXA Dataset"]
-D["BMD (Total / Neck / Troch / Intertroch)"]
-E["BMC (Bone Mineral Content)"]
-F["Bone Area"]
+subgraph Data_Layer ["④ Data Layer (多來源資料擷取與驗證層)"]
+C["NHANES DXA Dataset (2017-2020)"]
+D["近端股骨與腰椎骨密 (BMD / BMC / Area / T-score)"]
+E["臨床個案紀錄 (手術類型 / 骨折史 / 共病 / 用藥史)"]
+F["台灣健保公開規範 (第 5.6 節給付條文 / ATC 藥品檔)"]
 end
 
-subgraph Analytics_Layer ["⑤ Analytics Layer (資料分析層)"]
-G["資料前處理 (Data Preprocessing)"]
-H["特徵工程 (Feature Engineering)"]
-I["EDA 分析 (Exploratory Data Analysis)"]
+subgraph Analytics_Layer ["⑤ Analytics Layer (資料前處理與特徵工程層)"]
+G["資料前處理與驗證 (異常值與生理範圍檢核)"]
+H["特徵工程 (部位幾何比值 / BMI / 骨折加權特徵)"]
+I["探索性資料分析 (EDA 基準分佈校準)"]
 end
 
-subgraph AI_Layer ["⑤ AI Layer (機器學習層)"]
+subgraph AI_Layer ["⑤ AI Layer (機器學習骨鬆風險預測層)"]
 J["Logistic Regression"]
 K["Random Forest"]
 L["XGBoost"]
-M["風險預測模型 (Risk Prediction)"]
+M["模型比較與選模 (OSQ060 Classification)"]
 end
 
-subgraph Domain_Knowledge ["⑥ Domain Knowledge (領域知識層)"]
-N["WHO 診斷標準"]
-O["骨質疏鬆知識庫"]
-P["運動建議"]
-Q["營養建議 (鈣質與維生素 D)"]
+subgraph Domain_Knowledge ["⑥ Domain Knowledge (醫療法規與臨床知識庫)"]
+N["WHO / ISCD 骨質疏鬆診斷標準"]
+O["骨科與神外圍術期指引 (螺釘鬆脫/骨水泥強化)"]
+P["台灣健保第 5.6 節用藥給付與接續換藥法規庫"]
+Q["病患安全護欄 (牙科 MRONJ / 分級運動與營養禁忌)"]
 end
 
-subgraph Reasoning_Layer ["③ & ⑦ Reasoning Layer (推理與解釋層)"]
-R["風險評估 (Risk Assessment)"]
-S["知識推理 (Knowledge Reasoning)"]
-T["個人化建議 (Personalized Recommendation)"]
-U["Explainable AI (SHAP)"]
+subgraph Reasoning_Layer ["③ & ⑦ Reasoning Layer (多核心臨床決策與解釋層)"]
+R["OSQ060 分類參考與 SHAP 特徵歸因"]
+S["圍術期骨質預警引擎 (脊椎螺釘鬆脫風險評估)"]
+T["健保 5.6 節條件核對引擎 (依據與缺件)"]
+U["接續治療時間軸演算法 (下次施打日 & 換藥甘特圖)"]
+V["AI Clinical Copilot (LLM 臨床推理與圖卡生成)"]
 end
 
-subgraph Application_Layer ["⑧ Application Layer (應用輸出層)"]
-V["風險報告 (Risk Report)"]
-W["骨折預警 (Fracture Warning)"]
-X["健康建議 (Health Advice)"]
-Y["決策支援 (Decision Support & QA)"]
+subgraph Application_Layer ["⑧ Application Layer (臨床決策支援四大輸出)"]
+W1["① 風險分級 + SHAP 歸因 + 螺釘鬆脫預警"]
+W2["② 健保第 5.6 節給付審查卡 (防核扣)"]
+W3["③ 接續用藥時間軸與換藥甘特圖"]
+W4["④ 醫病溝通圖卡 (MRONJ護欄/運動營養) & SOAP 病歷摘要"]
 end
 
+B --> D
+B --> E
 C --> G
 D --> G
 E --> G
-F --> G
+F --> P
 
 G --> H --> I
 I --> J
@@ -102,17 +108,24 @@ K --> M
 L --> M
 
 M --> R
-N --> S
+N --> R
 O --> S
-P --> S
-Q --> S
+P --> T
+P --> U
+Q --> V
 
-R --> S --> T --> U
-
+R --> S
+R --> T
+T --> U
+S --> V
+T --> V
 U --> V
-U --> W
-U --> X
-U --> Y
+
+V --> W1
+V --> W2
+V --> W3
+V --> W4
+W4 -. "醫師追問 / 病患溝通互動 (Interactive QA)" .-> B
 ```
 
 ---
@@ -121,13 +134,13 @@ U --> Y
 
 | 模組編號與名稱 | 負責職責 (Responsibilities) | 輸入 (Input) | 輸出 (Output) | 使用技術 (Tech Stack) |
 | :--- | :--- | :--- | :--- | :--- |
-| **① & ② User & Agent Interface** | 提供使用者輸入 DXA 檢測數值、檢視視覺化圖表與進行智慧問答的互動前端 | 使用者 DXA 數值表單、自然語言提問 | 結構化風險報告、SHAP 圖表、互動對話回應 | `Streamlit`, `Python` |
-| **④ Data Layer** | 讀取 NHANES 2017–2020 原始 XPT/CSV 檔案，管理 BMD、BMC、Bone Area 基準統計量 | `P_DXXFEM` 原始資料檔、使用者輸入特徵 | 結構化 DataFrame 與群體常模參數 | `Pandas`, `NumPy` |
-| **⑤ Analytics Layer** | 執行無效掃描過濾（4,593 $\rightarrow$ 3,545）、缺失值插補/剔除、衍生特徵建構與分佈視覺化 | 原始 DXA 特徵矩陣 | 清理後之訓練/推論特徵向量 $X_{\text{feat}}$ | `Pandas`, `NumPy`, `Scikit-Learn` |
-| **⑤ AI Layer** | 訓練與封裝三大分類模型（LR、RF、XGBoost），輸出骨質疏鬆風險機率與類別預測 | 特徵向量 $X_{\text{feat}}$ | 各模型預測機率 $P_{\text{risk}}$ 與交叉驗證指標 | `Scikit-Learn`, `XGBoost` |
-| **⑥ Domain Knowledge** | 儲存結構化 WHO 骨鬆診斷準則、運動處方分級規則與每日鈣/維生素 D 營養攝取指南 | 風險等級查詢、特定骨骼部位弱點、使用者問題 | 對應之臨床準則條文、運動禁忌與營養知識片段 | `Markdown/JSON Knowledge Base`, `LangChain` |
-| **③ & ⑦ Reasoning Layer** | 協調 ML 預測結果、計算 SHAP 特徵歸因，並結合領域知識透過 LLM 生成個人化建議 | 預測機率 $P_{\text{risk}}$、特徵向量、檢索之領域知識 | 含 XAI 解釋之結構化評估與運動/營養處方 | `SHAP`, `LangChain`, `OpenAI API` |
-| **⑧ Application Layer** | 整合呈現四大終端應用功能：風險報告、骨折預警、健康建議、決策支援問答 | Reasoning Layer 輸出之結構化物件 | 視覺化儀表板、預警標籤、可下載/閱讀之衛教報告 | `Streamlit` |
+| **① & ② User & Agent Interface** | 提供骨科與神外醫師快速錄入個案、呈現四合一 CDSS 儀表板與多輪問答互動 | 個案 DXA 數值、預計手術、骨折史、用藥時程、追問提問 | 結構化決策面板、SHAP 圖表、用藥甘特圖、病歷摘要 | `Streamlit`, `Python` |
+| **④ Data Layer** | 管理 NHANES 2017–2020 股骨常模資料庫與衛福部健保署公開用藥法規資料檔 | `P_DXXFEM` 原始資料檔、健保第 5.6 節條文、ATC 藥物檔 | 基準統計常模、臨床特徵向量、法規結構字典 | `Pandas`, `NumPy`, `JSON` |
+| **⑤ Analytics Layer** | 執行無效掃描過濾（4,593 $\rightarrow$ 3,545）、異常值檢核、幾何衍生比值計算與標準化 | 原始 DXA 特徵與個案生理數值 | 清理後之特徵矩陣 $X_{\text{feat}}$ | `Pandas`, `Scikit-Learn` |
+| **⑤ AI Layer** | 封裝 LR、RF 與 XGBoost 三大分類模型，輸出骨質疏鬆風險機率與綜合分級 | 特徵向量 $X_{\text{feat}}$ | 預測機率 $P_{\text{risk}}$ 與交叉驗證指標 | `Scikit-Learn`, `XGBoost` |
+| **⑥ Domain Knowledge** | 結構化儲存 WHO 診斷準則、脊椎融合內固定生物力學、健保 5.6 節條文、MRONJ 與運動營養指引 | 風險等級、手術類型、共病、用藥名稱與施打日期 | 對應之法規條文、手術警示閾值、牙科護欄與處方規則 | `Markdown/JSON Rules`, `LangChain` |
+| **③ & ⑦ Reasoning Layer** | 多核心臨床推理引擎：執行 SHAP 特徵歸因、螺釘鬆脫預警、健保 5.6 節核對與換藥排程排定 | 模型機率、SHAP 值、領域知識庫、臨床輸入個案 | 螺釘鬆脫警報、健保審核結論、換藥時間節點、病歷摘要 | `SHAP`, `LangChain`, `OpenAI API` |
+| **⑧ Application Layer** | 整合呈現四大臨床決策面板：1.風險與手術預警、2.健保審查卡、3.換藥甘特圖、4.病患圖卡與問答 | Reasoning Layer 輸出之結構化評估物件 | 視覺化 CDSS 儀表板、SOAP 病歷匯出檔、病患衛教單 | `Streamlit` |
 
 ---
 
@@ -145,6 +158,10 @@ U --> Y
 | **大轉子 (Trochanter)** | Trochanter BMD / BMC / Area | `DXXTRBMD`, `DXXTRBMC`, `DXXTRA` | $\text{g/cm}^2$, $\text{g}$, $\text{cm}^2$ | 臀中肌與臀小肌附著處，反映海綿骨代謝與側向跌倒衝擊耐受力 |
 | **轉子間 (Intertrochanter)** | Intertrochanter BMD / BMC / Area | `DXXINBMD`, `DXXINBMC`, `DXXINA` | $\text{g/cm}^2$, $\text{g}$, $\text{cm}^2$ | 連接股骨頸與股骨幹之應力傳導區，骨量佔全髖部比例最高 |
 
+3,545 筆為提案所列整理後 DXA 資料；串聯人口學／體測／問卷並篩選年齡與有效 Y 後，本期最終模型樣本數 N 待重建確認，不直接沿用舊計畫的 3,525 筆完整樣本。
+
+> **模型與臨床輸入分工（對應簡報第 8 頁）**：離線訓練與線上模型參考共用年齡、性別、身高、體重、BMI、股骨 DXA 與比值的 schema；`OSQ060` 僅作訓練 Y。術式、骨折／共病史、診斷、用藥及事件日期、有效部位 T／Z-score、檢驗與日期、禁忌症、牙科計畫另供規則核對、排程與草稿，不混入模型 X。模型欄位不足或族群不適用時標示無法推論；其他可獨立執行的功能仍可使用。臨床輸入不自動回流訓練，DXA 判讀與模型結果分開呈現。
+
 ### 5.2 資料處理管線（Data Pipeline Flow）
 ```mermaid
 flowchart LR
@@ -157,83 +174,103 @@ flowchart LR
     G --> H[AI Agent回覆]
     H --> I[健康管理報告]
 ```
-1. **離線訓練資料流（Offline Training Pipeline）**：載入 NHANES 原始資料（4,593 筆） $\rightarrow$ 篩選有效掃描狀態（3,545 筆） $\rightarrow$ 依據 WHO 基準定義目標風險標籤 $\rightarrow$ 特徵工程與標準化 $\rightarrow$ K-Fold 交叉驗證訓練 LR / RF / XGBoost $\rightarrow$ 匯出最佳模型權重與 SHAP Explainer。
-2. **線上推論資料流（Online Agent Inference Pipeline）**：使用者輸入個人 DXA 數值 $\rightarrow$ 資料範圍驗證 $\rightarrow$ 特徵工程轉換 $\rightarrow$ ML 模型推論與 SHAP 計算 $\rightarrow$ 風險分級與 WHO 規則對齊 $\rightarrow$ LangChain + OpenAI API 知識庫推理 $\rightarrow$ 輸出個人化報告與互動問答。
+1. **離線訓練資料流（Offline Training Pipeline）**：載入 NHANES 原始資料（4,593 筆） $\rightarrow$ 篩選有效掃描狀態（3,545 筆） $\rightarrow$ 串聯 P_DEMO／P_BMX／P_OSQ，篩選 50 歲以上與有效 OSQ060 標籤並記錄最終 N $\rightarrow$ 特徵工程與標準化 $\rightarrow$ K-Fold 交叉驗證訓練 LR / RF / XGBoost $\rightarrow$ 匯出最佳模型權重與 TreeSHAP Explainer。
+2. **線上推論資料流（Online CDSS Inference Pipeline）**：醫師輸入個案 DXA 數值、預計手術、骨折史、共病與歷史用藥 $\rightarrow$ 資料與生理假影驗證 $\rightarrow$ 幾何比值與加權特徵計算 $\rightarrow$ ML 模型推論與 SHAP 局部歸因 $\rightarrow$ 圍術期螺釘鬆脫風險預警 $\rightarrow$ 台灣健保第 5.6 節合規核對 $\rightarrow$ 接續治療時間軸與換藥甘特圖排程 $\rightarrow$ LangChain + LLM 知識推理 $\rightarrow$ 輸出四大臨床決策面板與互動問答。
 
 ---
 
 ## 6. AI Models & Analytics Engine（AI 模型與分析引擎）
 
 ### 6.1 監督式機器學習模型（Supervised ML Models）
+
+**主要任務採用方案 1／方案 A**：以 `SEQN` 串聯 `P_DXXFEM`、`P_DEMO`、`P_BMX`、`P_OSQ`，對 50 歲以上且符合 DXA 品質條件的受試者，預測 `OSQ060`「自述曾被醫師告知骨鬆」。`OSQ060=1` 為陽性、`=2` 為陰性，拒答（7）、不知道（9）與缺值排除。模型 X 為年齡、性別、身高、體重、BMI、多部位 BMD／BMC／Area 及比值；族裔僅供描述與分層檢查。排除 `OSQ060`、`OSQ072` 及可揭露標籤的診斷／治療史，骨折史留作次要分析。這是橫斷面自述告知史分類，不代表未來骨折、現在臨床確診或手術結局；SHAP 只解釋該分類模型。來源：[CDC P_OSQ 資料字典](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/P_OSQ.htm)。
+
 為兼顧預測準確度與臨床基準比較，系統實作三種模型：
 1. **Logistic Regression（邏輯迴歸）**：作為線性 Baseline，使用 L2 正則化處理多部位 BMD/BMC/Area 之間的共線性，提供可直觀解釋的勝算比（Odds Ratio）。
 2. **Random Forest（隨機森林）**：利用 Bootstrap Aggregating (Bagging) 與隨機特徵子空間建立多棵決策樹，有效降低高維共線性特徵的變異數（Variance）。
-3. **XGBoost（極限梯度提升樹）**：透過二階泰勒展開與正則化目標函數逐步擬合殘差，捕捉不同部位骨骼密度與面積之間的非線性交互作用，作為系統主力高精準度預測器。
+3. **XGBoost（極限梯度提升樹）**：透過二階泰勒展開與正則化目標函數逐步擬合殘差，捕捉不同部位骨骼密度與面積之間的非線性交互作用，與 LR、RF 在相同切分下比較，不預設優於簡單模型。
 
 ### 6.2 Explainable AI (SHAP 解釋機制)
 - 採用 `shap.TreeExplainer`（針對 RF/XGBoost）與 `shap.LinearExplainer`（針對 LR）。
-- **全域解釋（Global Interpretability）**：產出 SHAP Summary Plot，驗證模型在整體 NHANES 資料集上是否最重視 `Femoral Neck BMD` 與 `Total Femur BMD`。
-- **局部解釋（Local Interpretability）**：針對單一使用者計算各特徵的 SHAP 值 $\phi_i$，挑選出前三大風險推升因子（Top Risk Contributors），並轉為結構化文字注入 LLM Agent 的 Prompt 中，使 Agent 能向使用者具體解釋其骨骼弱點部位。
+- **全域解釋（Global Interpretability）**：產出 SHAP Summary Plot，分析模型在本期樣本中對各特徵的歸因，包括 `Femoral Neck BMD` 與 `Total Femur BMD`。
+- **局部解釋（Local Interpretability）**：針對單一使用者計算各特徵的 SHAP 值 $\phi_i$，挑選出前三大風險推升因子（Top Risk Contributors），並轉為結構化文字注入 LLM Agent 的 Prompt 中，使 Agent 能說明此分類模型的主要特徵貢獻與限制。
 
 ---
 
 ## 7. Domain Knowledge Integration（領域知識整合）
 
-系統將四大醫療領域知識模組化，作為 Reasoning Layer 的推理依據與安全護欄：
+系統將四大臨床法規與醫療知識模組化，作為 Reasoning Layer 的多軌推理依據與安全護欄：
 
-1. **WHO 骨質疏鬆診斷標準（WHO Diagnostic Criteria）**
-   - 正常（Normal）：$T\text{-score} \ge -1.0$
-   - 骨量減少 / 骨質缺乏（Osteopenia）：$-2.5 < T\text{-score} < -1.0$
-   - 骨質疏鬆症（Osteoporosis）：$T\text{-score} \le -2.5$
-   - 嚴重骨質疏鬆症（Severe Osteoporosis）：$T\text{-score} \le -2.5$ 且合併一處以上脆弱性骨折。
-   - *部位特異性規則*：優先檢視 Femoral Neck 與 Total Femur 之較低數值作為預警基準。
+1. **WHO / ISCD 骨質疏鬆診斷標準與生物力學評估（WHO Criteria & Biomechanics）**
+   - 正常（Normal）：$T\text{-score} \ge -1.0$；骨量減少（Osteopenia）：$-2.5 < T < -1.0$；骨質疏鬆症（Osteoporosis）：$T \le -2.5$；嚴重骨鬆（Severe）：$T \le -2.5$ 且合併 $\ge 1$ 處脆弱性骨折。
+   - **最低部位原則（Lowest Site Rule）**：以股骨頸、全髖部或腰椎之最低 T-score 作為基準，結合 BMC 與 Bone Area 解釋幾何結構弱點。
 
-2. **骨密度與生物力學評估準則（BMD / BMC / Area Assessment Rules）**
-   - 解釋 BMD（密度）、BMC（總礦物質量）與 Bone Area（骨骼截面積）的物理意義。
-   - 針對特定解剖部位退化（例如：股骨頸單獨偏低 vs. 大轉子偏低）提供對應的生物力學風險說明。
+2. **骨科與神經外科圍術期內固定指引（Orthopedic & Neurosurgical Perioperative Guidelines）**
+   - **椎弓根螺釘鬆脫（Pedicle Screw Loosening）風險評估**：針對預計進行脊椎融合術或關節置換且 $T\text{-score} \le -2.5$ 之個案，自動提示內固定鬆脫高風險。
+   - **圍術期強化對策**：提供術前 1–3 個月先期使用促骨生成劑（Anabolic Agent）之評估建議，或提示於手術中採用骨水泥強化螺釘（Cement Augmentation）與皮質骨軌道螺釘（CBT Screw）。
 
-3. **個人化運動處方建議庫（Risk-Stratified Exercise Prescription）**
-   - **低/中風險（正常與輕度骨量減少）**：建議規律負重有氧運動（快走、慢跑、爬樓梯）搭配每周 2–3 次漸進式肌力阻抗訓練。
-   - **高風險（骨質疏鬆與骨折預警）**：**嚴格禁止高衝擊跳躍與過度脊椎前彎/扭轉動作**；優先推薦低衝擊負重步行、坐姿/扶牆安全阻抗訓練、太極拳或單腳支撐（需扶物）等**防跌平衡訓練**，並強化居家防跌環境檢核。
+3. **台灣健保第 5.6 節骨鬆用藥給付與接續換藥法規庫（Taiwan NHI Section 5.6 & Sequential Therapy）**
+   - **5.6.1 第一線抗骨吸收劑**（Prolia、Aclasta 等）：符合 $T \le -2.5$ 伴隨脊椎/髖部骨折；或骨少伴多處骨折；或符合未骨折之高危三大共病（RA、胰島素糖尿病、長期使用類固醇）。
+   - **5.6.2 / 5.6.3 第二線促骨生成劑**（Forteo、Evenity）：符合 $T \le -3.0$ 伴隨 $\ge 2$ 處骨折，或使用抗流失劑滿 12 個月仍發生新骨折；自動檢驗心血管禁忌症（Evenity 禁忌症：一年內心肌梗塞/腦中風）。
+   - **接續治療（Sequential Therapy）換藥規則**：Evenity 上限 12 個月、Forteo 上限 2 年，期滿必須強制轉換為抗流失劑；Prolia 逾期超過 30 天未施打（>7 個月）觸發反彈性骨折高危警訊。
 
-4. **鈣質與維生素 D 營養建議庫（Calcium & Vitamin D Nutrition Guidelines）**
-   - **鈣質（Calcium）**：建議 50 歲以上成人每日攝取 **1,000–1,200 mg**（優先由乳製品、板豆腐、深綠色蔬菜、小魚乾等天然飲食攝取；單次補充劑不超過 500 mg，每日總上限不超過 2,000–2,500 mg）。
-   - **維生素 D（Vitamin D）**：建議每日攝取 **800–1,000 IU**，搭配適度日照與富含維生素 D 食物（鮭魚、鯖魚、黑木耳、雞蛋），以促進腸道鈣質吸收與維持肌肉功能（降低跌倒率）。
+4. **醫病溝通與病患安全護欄（Patient Communication & Safety Guardrails）**
+   - **牙科拔牙 MRONJ 護欄**：近期 3 個月內有拔牙或植牙計畫者，提供抗骨鬆用藥暫緩期與牙科照會安全指引，消除病患恐慌與非必要停藥。
+   - **分級運動與營養安全**：高骨折風險者**嚴格禁止高衝擊跳躍與脊椎過度彎曲扭轉**；推薦安全防跌肌力平衡訓練；每日鈣 1,000–1,200 mg 與維生素 D 800–1,000 IU 基礎代謝指引。
 
 ---
 
 ## 8. Core Algorithm & Pseudocode（核心演算法）
 
 ```text
-Algorithm 1: OsteoGuard AI Agent Execution Pipeline
-Input : User DXA Dictionary X_raw, User Question Q_user
-Output: Agent Report Object R_out {risk_score, risk_level, fracture_alert, shap_plot, llm_report}
+Algorithm 1: OsteoGuard Clinical Decision Support Agent for Orthopedics & Neurosurgery
+Input : Patient Record P = {Demographics, Surgery_Type, DXA_Sites, Fracture_History, Comorbidities, Med_History}
+        Trained Models M = {M_LR, M_RF, M_XGB}, Reference Stats D_ref
+        Domain Rules KB = {KB_WHO, KB_Surgery_Screws, KB_NHI_5_6, KB_MRONJ_Exercise}
+Output: Clinical CDSS Report R_cdss {Risk_Tier, SHAP_Plots, Screw_Alert, NHI_Status, Switch_Gantt, Patient_Card}
 
-01: function RunOsteoGuardAgent(X_raw, Q_user):
-02:     // Stage 1: Data Validation
-03:     if not ValidateDXAInput(X_raw) then
-04:         return RaiseValidationError("輸入之 BMD/BMC/Area 數值超出合理生理範圍或有缺漏")
-05:     end if
-06:     // Stage 2: Feature Engineering
-07:     X_processed <- PreprocessAndEngineerFeatures(X_raw)
-08:     // Stage 3: ML Model Inference & XAI
-09:     prob_lr  <- Model_LR.predict_proba(X_processed)
-10:     prob_rf  <- Model_RF.predict_proba(X_processed)
-11:     prob_xgb <- Model_XGB.predict_proba(X_processed)
-12:     shap_vals <- SHAP_Explainer.shap_values(X_processed)
-13:     key_weak_sites <- ExtractTopNegativeContributors(X_raw, shap_vals)
-14:     // Stage 4: Risk Stratification & Domain Knowledge Retrieval
-15:     who_tier, fracture_alert <- EvaluateWHOCriteria(X_raw["Femoral_Neck_BMD"], X_raw["Total_Femur_BMD"])
-16:     final_risk_level <- CombineMLAndWHORisk(prob_xgb, who_tier)
-17:     domain_docs <- QueryKnowledgeBase(final_risk_level, key_weak_sites, Q_user)
-18:     // Stage 5: LLM Reasoning & Personalized Prescription Generation
-19:     system_prompt <- ConstructClinicalGuardrailPrompt(domain_docs, final_risk_level, fracture_alert)
-20:     user_context  <- FormatPatientSummary(X_raw, prob_xgb, shap_vals, Q_user)
-21:     llm_report    <- LangChain_OpenAI_Agent.invoke(system_prompt, user_context)
-22:     // Stage 6: Package Output
-23:     R_out <- {prob_xgb, final_risk_level, fracture_alert, shap_vals, llm_report}
-24:     return R_out
+01: Receive clinical case input P and physician query Q
+02: // Stage 1: Clinical Data & Image Validation
+03: is_valid, msg <- ValidateClinicalAndDXAInput(P, D_ref)
+04: if not is_valid then return PromptPhysicianCorrection(msg)
+05: 
+06: // Stage 2: Feature Engineering
+07: X_feat <- SelectDeclaredModelFeatures(P)  // Age, Sex, Body measures, DXA, ratios; exclude diagnosis/treatment history
+08: 
+09: // Stage 3: ML Inference & SHAP Explainability
+10: M_best <- LoadSelectedOSQ060Model()  // Selected by offline validation; require population/schema match
+11: p_history <- M_best.predict_proba(X_feat)  // Self-reported diagnosis history, not future fracture risk
+12: shap_vals, contributors <- ComputeSHAPAttribution(M_best, X_feat)
+13: who_tier, min_t_site  <- EvaluateWHOCriteria(P.DXA_Sites, KB_WHO)
+14: final_tier <- who_tier  // Keep DXA interpretation separate from p_history
+15: 
+16: // Stage 4: Orthopedic & Neurosurgical Perioperative Screw Warning
+17: screw_alert <- null
+18: if P.Surgery_Type in ["Spinal_Fusion", "Vertebroplasty"] and final_tier in ["Osteoporosis", "Severe"] then
+19:     screw_alert <- GenerateScrewLooseningWarning(min_t_site, KB_Surgery_Screws)
+20: end if
+21: 
+22: // Stage 5: Taiwan NHI Section 5.6 Reimbursement Compliance Verification
+23: nhi_eval <- EvaluateNHISection56(P.T_score, P.Fracture_History, P.Comorbidities, P.Med_History, KB_NHI_5_6)
+24: 
+25: // Stage 6: Sequential Therapy Schedule & Medication Switch Gantt
+26: next_dose_date, days_left <- CalculateNextDose(P.Med_History.Last_Date, P.Med_History.Drug_Name)
+27: switch_schedule           <- ComputeSequentialTherapySwitch(P.Med_History.Start_Date, P.Med_History.Drug_Name)
+28: 
+29: // Stage 7: Patient Communication & Safety Guardrails (MRONJ & Exercise/Nutrition)
+30: dental_mronj_guard <- CheckDentalExtractionSafety(P.Upcoming_Dental_Proc, P.Med_History, KB_MRONJ_Exercise)
+31: exercise_plan      <- GenerateRiskStratifiedExercise(final_tier, P.Surgery_Type, KB_MRONJ_Exercise)
+32: nutrition_plan     <- GenerateCalciumVitaminDPlan(final_tier, KB_MRONJ_Exercise)
+33: 
+34: // Stage 8: AI Clinical Copilot & Report Synthesis
+35: prompt_ctx <- BuildCopilotPrompt(P, final_tier, contributors, screw_alert, nhi_eval, switch_schedule, dental_mronj_guard, exercise_plan, nutrition_plan, Q)
+36: copilot_resp <- LangChain_OpenAI_Agent.invoke(prompt_ctx)
+37: R_cdss <- SynthesizeCDSSPanels(copilot_resp, shap_vals, screw_alert, nhi_eval, switch_schedule, dental_mronj_guard)
+38: RenderOnStreamlitDashboard(R_cdss)
+39: return R_cdss
 ```
+
+> 模型參考僅在族群與欄位適用時執行；草稿與來源須人工確認。
 
 ---
 
@@ -258,8 +295,10 @@ nchu-bone-health-agent/
 │   ├── data_processor.py       # 資料驗證 (Data Validation) 與特徵工程 (Feature Engineering)
 │   ├── ml_models.py            # 機器學習模型訓練、評估 (Accuracy/F1/ROC-AUC) 與推論介面
 │   ├── explainability.py       # SHAP 特徵重要度計算與視覺化圖表生成
-│   ├── knowledge_base/         # 醫療領域知識庫文件 (WHO 標準、運動處方、鈣與維生素 D 指引)
-│   └── agent.py                # LangChain + OpenAI API 知識庫推理與個人化建議 Agent
+│   ├── surgical_advisor.py     # 骨科/神外圍術期椎弓根螺釘鬆脫預警模組
+│   ├── nhi_engine.py           # 台灣健保第 5.6 節合規審查與接續換藥排程引擎
+│   ├── knowledge_base/         # 領域法規與知識庫 (WHO 標準、健保條文、手術指引、MRONJ 與運動營養)
+│   └── agent.py                # LangChain + LLM API 臨床推理、病歷摘要與衛教生成 Agent
 ├── models/                     # 序列化儲存之訓練後模型 (.pkl / .json)
 └── app.py                      # Streamlit 互動式 Web 應用程式主程式
 ```
@@ -305,10 +344,13 @@ streamlit run app.py
 ## 11. Evaluation, Expected Results & Limitations（驗證規劃、預期結果與系統限制）
 
 ### 11.1 實驗驗證規劃（Evaluation Plan）
-- **量化驗證**：於 NHANES 3,545 筆有效樣本上執行 **K-Fold Cross Validation**，系統性紀錄 Logistic Regression、Random Forest 與 XGBoost 之 **Accuracy、Precision、Recall、F1-Score、ROC-AUC**。
-- **可解釋性與定性驗證**：透過 **SHAP 分析** 檢驗模型決策邏輯，並以 **Case Study（臨床個案研究）** 驗證 Agent 針對不同風險層級所生成的運動與營養建議是否合乎臨床指引。
+- **第一階段：模型與統計圖表**：先完成樣本流程、缺值／類別分布、模型比較表、ROC／PR 曲線、混淆矩陣、校準圖、SHAP 與誤分類分析。採分層 80/20 訓練／保留測試切分，訓練內 5-fold 交叉驗證；前處理、調參與閾值選擇限於訓練驗證內，以 PR-AUC 為主要比較指標，並報 Accuracy、陽性 Precision／Recall／F1、Macro-F1、ROC-AUC、校準與信賴區間。比較人口學基準與加入 DXA 的增益，再選定單一模型；集成列為延伸。
+- **第二階段：組員內部功能測試**：依公開來源預先建立內部參照案例，核對輸入驗證、數值／引用一致性、條文版本、缺件與日期邊界，保存通過／失敗與修正紀錄；不稱為專家標準答案。
+- **第三階段：模擬臨床情境展示**：由組員以合成案例操作原型，展示四類情境的工具、證據、草稿與人工確認流程，產出 Demo 與限制說明。期末不安排專業人員回饋，不將組員扮演醫師當成臨床驗證，也不宣稱已證明可用性、信任、實際工時節省或照護成效。此安排保留《作業要求.md》的資料、比較、結果與 Demo 交付方向。
 
 ### 11.2 系統限制與未來展望（Limitations & Future Work）
-1. **資料集特徵範圍限制**：目前初版聚焦於 NHANES `P_DXXFEM` 股骨 DXA 內部指標（BMD、BMC、Bone Area）；未來可進一步串接 NHANES 人口學（`P_DEMO` 年齡、性別、族裔）與身體測量（`P_BMX` BMI）資料表，提升個體化校正精準度。
-2. **跨族群分佈差異（Domain Shift）**：NHANES 為美國人口常模，直接應用於亞洲/台灣高齡族群時可能存在體型與基準骨密差異；未來可導入台灣本土健檢常模進行 T-score 基準校正。
-3. **非醫療診斷聲明**：本系統定位為健康風險評估與預防醫學衛教決策支援工具，所有高風險骨折預警皆需轉介臨床專科醫師進行最終診斷與藥物處置。
+1. **多來源資料融合之邊界**：本期即串聯 DXA、P_DEMO、P_BMX、P_OSQ 訓練自述告知史分類模型；臨床骨折、診斷、共病及用藥紀錄另供規則與草稿，不進主要 X，不自動回流訓練。
+2. **跨族群分佈差異（Domain Shift）**：NHANES 為美國人口常模，亞洲/台灣高齡族群之體型與基準骨密普遍偏小；系統目前採用 T-score 最低部位原則與幾何比例特徵進行校準，未來可直接導入台灣本土世代常模進行再校準。
+3. **臨床決策輔助邊界聲明**：本系統為臨床決策支援系統（CDSS）與醫病溝通工具，所有輸出之健保判定與手術預警建議皆為輔助參考，不取代主治專科醫師之獨立臨床處方與手術決策權。
+
+以清楚的來源、數值、SHAP 解釋、缺件與限制提示，支持使用者理解與人工判斷；透明度不保證 100% 信任或正確。醫病溝通建議、文件統整及 SOAP／健保申報相關摘要先產生草稿，允許醫師修改與確認；預期協助減少行政整理負擔，實際節省工時尚未量測，本期不宣稱已串接正式電子病歷或申報系統。
