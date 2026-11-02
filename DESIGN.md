@@ -24,15 +24,17 @@
 
 ### 2.1 Functional Requirements（功能性需求）
 - **FR-01 門診快速輸入與多源資料驗證（Clinical Case Input & Validation）**：支援骨科與神外醫師於 15 秒內輸入個案基本資料、預計手術類型、DXA 骨密指標（BMD/BMC/Area）、骨折與健保共病史，以及用藥紀錄；自動檢核生理合理性與 DXA 假影。
-- **FR-02 特徵工程與多模型預測（Feature Engineering & ML Prediction）**：自動計算跨部位幾何比值特徵與 BMI，呼叫預訓練之 Logistic Regression、Random Forest 與 XGBoost 進行骨質疏鬆風險預測與等級判定。
-- **FR-03 可解釋性 AI 分析（Explainable AI - SHAP）**：針對個別病例推論計算 SHAP 特徵貢獻度，繪製局部弱點長條圖，向醫師與病患標示推升骨折風險的核心解剖部位（如股骨頸 vs. 大轉子）。
+- **FR-02 特徵工程與多模型預測（Feature Engineering & ML Prediction）**：自動計算跨部位幾何比值特徵與 BMI，呼叫預訓練之 Logistic Regression、Random Forest 與 XGBoost 進行 OSQ060 自述告知史分類；臨床 DXA 判讀另行呈現。
+- **FR-03 可解釋性 AI 分析（Explainable AI - SHAP）**：針對個別病例推論計算 SHAP 特徵貢獻度，繪製分類特徵貢獻圖，並列原始量測、模型任務與限制，不將 SHAP 等同骨強度或未來骨折風險。
 - **FR-04 骨科與神外圍術期螺釘鬆脫預警（Perioperative Screw Loosening Warning）**：針對預計接受脊椎融合內固定或人工關節置換之骨鬆個案，自動觸發椎弓根螺釘鬆脫與內固定失敗高風險預警，建議術前先期促骨生成或術中骨水泥螺釘強化。
 - **FR-05 台灣健保第 5.6 節用藥合規審核（Taiwan NHI Section 5.6 Compliance Check）**：比對健保署公開之 5.6.1～5.6.3 給付條款，自動判別第一線抗骨流失劑（含未骨折高危初級預防）與第二線促骨生成劑適應症，提示漏驗項目，防範整筆放大核扣。
 - **FR-06 長程接續治療時間軸與換藥甘特圖（Sequential Therapy & Drug Switch Gantt）**：視覺化標示目前療程進度、預計下次施打日期（含 Prolia 逾期斷藥反彈紅色警報），以及 Evenity（12 個月）/ Forteo（2 年）到期強制換藥期程。
 - **FR-07 AI Clinical Copilot 與病患溝通圖卡生成（Clinical Copilot & Patient Cards）**：結合牙科拔牙 MRONJ 安全護欄、分級運動與鈣/維生素 D 指南，一鍵生成病患看得懂的白話骨折圖卡，並匯出門診 SOAP 結構化病歷摘要。
 
+> 本期功能優先序與產出對照見 README「本期功能優先序」：衛教／文件 → 給付核對 → 追蹤 → 術式提醒 → 人工複查；模型訓練及統計圖表先行完成。
+
 ### 2.2 Non-Functional Requirements（非功能性需求）
-- **NFR-01 可解釋性與透明度（Explainability）**：每一項風險判定皆須附上 SHAP 特徵依據與 WHO 準則來源，法規判定須具體指明健保條號與判準，拒絕黑箱推論。
+- **NFR-01 可解釋性與透明度（Explainability）**：分開呈現模型 SHAP 歸因、DXA 判讀及法規依據，清楚標示來源、缺件與限制；不以透明度保證使用者信任或 100% 正確。
 - **NFR-02 臨床安全性與法律邊界（Clinical Safety & Legal Guardrails — Human-in-the-Loop）**：依據《醫師法》與《醫療法》，AI 絕不直接無授權寫入醫院法定電子病歷，而是扮演「病歷輔助草擬者（Clinical Drafting Scribe）」，自動產出結構化健保加簽審查理由草稿，供主治醫師過目審核後一鍵帶入並親自數位簽章；對高骨折風險者強制過濾高衝擊運動與脊椎過度彎曲動作；拔牙前啟動 MRONJ 照會護欄；明確標示本系統為輔助決策支援工具（CDSS），不取代臨床醫師獨立處方與手術決策權。
 - **NFR-03 模組化與可維護性（Modularity & Maintainability）**：資料前處理、ML 模型、SHAP 解釋、健保法規引擎、用藥甘特圖演算法與前端介面採高內聚低耦合設計，便於法規更新與跨科模組擴充。
 
@@ -64,7 +66,7 @@ subgraph AI_Layer ["⑤ AI Layer (機器學習骨鬆風險預測層)"]
 J["Logistic Regression"]
 K["Random Forest"]
 L["XGBoost"]
-M["多模型集成風險預測 (Ensemble Risk Model)"]
+M["模型比較與選模 (OSQ060 Classification)"]
 end
 
 subgraph Domain_Knowledge ["⑥ Domain Knowledge (醫療法規與臨床知識庫)"]
@@ -75,9 +77,9 @@ Q["病患安全護欄 (牙科 MRONJ / 分級運動與營養禁忌)"]
 end
 
 subgraph Reasoning_Layer ["③ & ⑦ Reasoning Layer (多核心臨床決策與解釋層)"]
-R["骨鬆風險分級與 SHAP 解剖局部弱點歸因"]
+R["OSQ060 分類參考與 SHAP 特徵歸因"]
 S["圍術期骨質預警引擎 (脊椎螺釘鬆脫風險評估)"]
-T["健保 5.6 節合規審核引擎 (100% 防放大核扣)"]
+T["健保 5.6 節條件核對引擎 (依據與缺件)"]
 U["接續治療時間軸演算法 (下次施打日 & 換藥甘特圖)"]
 V["AI Clinical Copilot (LLM 臨床推理與圖卡生成)"]
 end
@@ -156,6 +158,10 @@ W4 -. "醫師追問 / 病患溝通互動 (Interactive QA)" .-> B
 | **大轉子 (Trochanter)** | Trochanter BMD / BMC / Area | `DXXTRBMD`, `DXXTRBMC`, `DXXTRA` | $\text{g/cm}^2$, $\text{g}$, $\text{cm}^2$ | 臀中肌與臀小肌附著處，反映海綿骨代謝與側向跌倒衝擊耐受力 |
 | **轉子間 (Intertrochanter)** | Intertrochanter BMD / BMC / Area | `DXXINBMD`, `DXXINBMC`, `DXXINA` | $\text{g/cm}^2$, $\text{g}$, $\text{cm}^2$ | 連接股骨頸與股骨幹之應力傳導區，骨量佔全髖部比例最高 |
 
+3,545 筆為提案所列整理後 DXA 資料；串聯人口學／體測／問卷並篩選年齡與有效 Y 後，本期最終模型樣本數 N 待重建確認，不直接沿用舊計畫的 3,525 筆完整樣本。
+
+> **模型與臨床輸入分工（對應簡報第 8 頁）**：離線訓練與線上模型參考共用年齡、性別、身高、體重、BMI、股骨 DXA 與比值的 schema；`OSQ060` 僅作訓練 Y。術式、骨折／共病史、診斷、用藥及事件日期、有效部位 T／Z-score、檢驗與日期、禁忌症、牙科計畫另供規則核對、排程與草稿，不混入模型 X。模型欄位不足或族群不適用時標示無法推論；其他可獨立執行的功能仍可使用。臨床輸入不自動回流訓練，DXA 判讀與模型結果分開呈現。
+
 ### 5.2 資料處理管線（Data Pipeline Flow）
 ```mermaid
 flowchart LR
@@ -168,7 +174,7 @@ flowchart LR
     G --> H[AI Agent回覆]
     H --> I[健康管理報告]
 ```
-1. **離線訓練資料流（Offline Training Pipeline）**：載入 NHANES 原始資料（4,593 筆） $\rightarrow$ 篩選有效掃描狀態（3,545 筆） $\rightarrow$ 依據 WHO 基準與股骨幾何特徵建立風險預測標籤 $\rightarrow$ 特徵工程與標準化 $\rightarrow$ K-Fold 交叉驗證訓練 LR / RF / XGBoost $\rightarrow$ 匯出最佳模型權重與 TreeSHAP Explainer。
+1. **離線訓練資料流（Offline Training Pipeline）**：載入 NHANES 原始資料（4,593 筆） $\rightarrow$ 篩選有效掃描狀態（3,545 筆） $\rightarrow$ 串聯 P_DEMO／P_BMX／P_OSQ，篩選 50 歲以上與有效 OSQ060 標籤並記錄最終 N $\rightarrow$ 特徵工程與標準化 $\rightarrow$ K-Fold 交叉驗證訓練 LR / RF / XGBoost $\rightarrow$ 匯出最佳模型權重與 TreeSHAP Explainer。
 2. **線上推論資料流（Online CDSS Inference Pipeline）**：醫師輸入個案 DXA 數值、預計手術、骨折史、共病與歷史用藥 $\rightarrow$ 資料與生理假影驗證 $\rightarrow$ 幾何比值與加權特徵計算 $\rightarrow$ ML 模型推論與 SHAP 局部歸因 $\rightarrow$ 圍術期螺釘鬆脫風險預警 $\rightarrow$ 台灣健保第 5.6 節合規核對 $\rightarrow$ 接續治療時間軸與換藥甘特圖排程 $\rightarrow$ LangChain + LLM 知識推理 $\rightarrow$ 輸出四大臨床決策面板與互動問答。
 
 ---
@@ -176,15 +182,18 @@ flowchart LR
 ## 6. AI Models & Analytics Engine（AI 模型與分析引擎）
 
 ### 6.1 監督式機器學習模型（Supervised ML Models）
+
+**主要任務採用方案 1／方案 A**：以 `SEQN` 串聯 `P_DXXFEM`、`P_DEMO`、`P_BMX`、`P_OSQ`，對 50 歲以上且符合 DXA 品質條件的受試者，預測 `OSQ060`「自述曾被醫師告知骨鬆」。`OSQ060=1` 為陽性、`=2` 為陰性，拒答（7）、不知道（9）與缺值排除。模型 X 為年齡、性別、身高、體重、BMI、多部位 BMD／BMC／Area 及比值；族裔僅供描述與分層檢查。排除 `OSQ060`、`OSQ072` 及可揭露標籤的診斷／治療史，骨折史留作次要分析。這是橫斷面自述告知史分類，不代表未來骨折、現在臨床確診或手術結局；SHAP 只解釋該分類模型。來源：[CDC P_OSQ 資料字典](https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2017/DataFiles/P_OSQ.htm)。
+
 為兼顧預測準確度與臨床基準比較，系統實作三種模型：
 1. **Logistic Regression（邏輯迴歸）**：作為線性 Baseline，使用 L2 正則化處理多部位 BMD/BMC/Area 之間的共線性，提供可直觀解釋的勝算比（Odds Ratio）。
 2. **Random Forest（隨機森林）**：利用 Bootstrap Aggregating (Bagging) 與隨機特徵子空間建立多棵決策樹，有效降低高維共線性特徵的變異數（Variance）。
-3. **XGBoost（極限梯度提升樹）**：透過二階泰勒展開與正則化目標函數逐步擬合殘差，捕捉不同部位骨骼密度與面積之間的非線性交互作用，作為系統主力高精準度預測器。
+3. **XGBoost（極限梯度提升樹）**：透過二階泰勒展開與正則化目標函數逐步擬合殘差，捕捉不同部位骨骼密度與面積之間的非線性交互作用，與 LR、RF 在相同切分下比較，不預設優於簡單模型。
 
 ### 6.2 Explainable AI (SHAP 解釋機制)
 - 採用 `shap.TreeExplainer`（針對 RF/XGBoost）與 `shap.LinearExplainer`（針對 LR）。
-- **全域解釋（Global Interpretability）**：產出 SHAP Summary Plot，驗證模型在整體 NHANES 資料集上是否最重視 `Femoral Neck BMD` 與 `Total Femur BMD`。
-- **局部解釋（Local Interpretability）**：針對單一使用者計算各特徵的 SHAP 值 $\phi_i$，挑選出前三大風險推升因子（Top Risk Contributors），並轉為結構化文字注入 LLM Agent 的 Prompt 中，使 Agent 能向使用者具體解釋其骨骼弱點部位。
+- **全域解釋（Global Interpretability）**：產出 SHAP Summary Plot，分析模型在本期樣本中對各特徵的歸因，包括 `Femoral Neck BMD` 與 `Total Femur BMD`。
+- **局部解釋（Local Interpretability）**：針對單一使用者計算各特徵的 SHAP 值 $\phi_i$，挑選出前三大風險推升因子（Top Risk Contributors），並轉為結構化文字注入 LLM Agent 的 Prompt 中，使 Agent 能說明此分類模型的主要特徵貢獻與限制。
 
 ---
 
@@ -226,19 +235,19 @@ Output: Clinical CDSS Report R_cdss {Risk_Tier, SHAP_Plots, Screw_Alert, NHI_Sta
 04: if not is_valid then return PromptPhysicianCorrection(msg)
 05: 
 06: // Stage 2: Feature Engineering
-07: X_feat <- ComputeGeometricAndClinicalFeatures(P)  // Site ratios, BMC/Area, BMI, weighted fracture index
+07: X_feat <- SelectDeclaredModelFeatures(P)  // Age, Sex, Body measures, DXA, ratios; exclude diagnosis/treatment history
 08: 
 09: // Stage 3: ML Inference & SHAP Explainability
-10: p_lr  <- M_LR.predict_proba(X_feat); p_rf <- M_RF.predict_proba(X_feat); p_xgb <- M_XGB.predict_proba(X_feat)
-11: p_risk <- EvaluateEnsembleRisk(p_lr, p_rf, p_xgb)
-12: shap_vals, weak_sites <- ComputeSHAPAttribution(M_XGB, X_feat)
+10: M_best <- LoadSelectedOSQ060Model()  // Selected by offline validation; require population/schema match
+11: p_history <- M_best.predict_proba(X_feat)  // Self-reported diagnosis history, not future fracture risk
+12: shap_vals, contributors <- ComputeSHAPAttribution(M_best, X_feat)
 13: who_tier, min_t_site  <- EvaluateWHOCriteria(P.DXA_Sites, KB_WHO)
-14: final_tier            <- HarmonizeMLAndWHO(p_risk, who_tier)
+14: final_tier <- who_tier  // Keep DXA interpretation separate from p_history
 15: 
 16: // Stage 4: Orthopedic & Neurosurgical Perioperative Screw Warning
 17: screw_alert <- null
 18: if P.Surgery_Type in ["Spinal_Fusion", "Vertebroplasty"] and final_tier in ["Osteoporosis", "Severe"] then
-19:     screw_alert <- GenerateScrewLooseningWarning(min_t_site, weak_sites, KB_Surgery_Screws)
+19:     screw_alert <- GenerateScrewLooseningWarning(min_t_site, KB_Surgery_Screws)
 20: end if
 21: 
 22: // Stage 5: Taiwan NHI Section 5.6 Reimbursement Compliance Verification
@@ -254,12 +263,14 @@ Output: Clinical CDSS Report R_cdss {Risk_Tier, SHAP_Plots, Screw_Alert, NHI_Sta
 32: nutrition_plan     <- GenerateCalciumVitaminDPlan(final_tier, KB_MRONJ_Exercise)
 33: 
 34: // Stage 8: AI Clinical Copilot & Report Synthesis
-35: prompt_ctx <- BuildCopilotPrompt(P, final_tier, weak_sites, screw_alert, nhi_eval, switch_schedule, dental_mronj_guard, exercise_plan, nutrition_plan, Q)
+35: prompt_ctx <- BuildCopilotPrompt(P, final_tier, contributors, screw_alert, nhi_eval, switch_schedule, dental_mronj_guard, exercise_plan, nutrition_plan, Q)
 36: copilot_resp <- LangChain_OpenAI_Agent.invoke(prompt_ctx)
 37: R_cdss <- SynthesizeCDSSPanels(copilot_resp, shap_vals, screw_alert, nhi_eval, switch_schedule, dental_mronj_guard)
 38: RenderOnStreamlitDashboard(R_cdss)
 39: return R_cdss
 ```
+
+> 模型參考僅在族群與欄位適用時執行；草稿與來源須人工確認。
 
 ---
 
@@ -333,14 +344,13 @@ streamlit run app.py
 ## 11. Evaluation, Expected Results & Limitations（驗證規劃、預期結果與系統限制）
 
 ### 11.1 實驗驗證規劃（Evaluation Plan）
-- **量化驗證**：於 NHANES 3,545 筆有效樣本上執行 **K-Fold Cross Validation**，系統性紀錄 Logistic Regression、Random Forest 與 XGBoost 之 **Accuracy、Precision、Recall、F1-Score、ROC-AUC**。
-- **可解釋性與定性驗證**：透過 **SHAP 分析** 檢驗模型決策邏輯，並以 **Case Study（骨科與神外典型臨床情境）** 驗證 Agent 在四種真實場景之表現：
-  1. 急診/門診 Genant Grade 1 微小壓迫骨折防漏篩檢；
-  2. 台灣健保第 5.6 節 Evenity/Prolia 藥物申報與接續換藥防核扣審查；
-  3. 門診病患拔牙恐慌停藥與 MRONJ 安全照會溝通圖卡生成；
-  4. 脊椎融合術前骨質預警與骨水泥螺釘強化評估。
+- **第一階段：模型與統計圖表**：先完成樣本流程、缺值／類別分布、模型比較表、ROC／PR 曲線、混淆矩陣、校準圖、SHAP 與誤分類分析。採分層 80/20 訓練／保留測試切分，訓練內 5-fold 交叉驗證；前處理、調參與閾值選擇限於訓練驗證內，以 PR-AUC 為主要比較指標，並報 Accuracy、陽性 Precision／Recall／F1、Macro-F1、ROC-AUC、校準與信賴區間。比較人口學基準與加入 DXA 的增益，再選定單一模型；集成列為延伸。
+- **第二階段：組員內部功能測試**：依公開來源預先建立內部參照案例，核對輸入驗證、數值／引用一致性、條文版本、缺件與日期邊界，保存通過／失敗與修正紀錄；不稱為專家標準答案。
+- **第三階段：模擬臨床情境展示**：由組員以合成案例操作原型，展示四類情境的工具、證據、草稿與人工確認流程，產出 Demo 與限制說明。期末不安排專業人員回饋，不將組員扮演醫師當成臨床驗證，也不宣稱已證明可用性、信任、實際工時節省或照護成效。此安排保留《作業要求.md》的資料、比較、結果與 Demo 交付方向。
 
 ### 11.2 系統限制與未來展望（Limitations & Future Work）
-1. **多來源資料融合之邊界**：底層監督式 ML 模型以 NHANES 3,545 筆 DXA 股骨指標為訓練主幹，門診個案之人口學（年齡/性別/BMI）、骨折病史與用藥紀錄則透過確定性規則引擎與推理層協同決策。未來可進一步整併 NHANES `P_DEMO` 與 `P_OSQ` 建立端到端多模態聯合預測模型。
+1. **多來源資料融合之邊界**：本期即串聯 DXA、P_DEMO、P_BMX、P_OSQ 訓練自述告知史分類模型；臨床骨折、診斷、共病及用藥紀錄另供規則與草稿，不進主要 X，不自動回流訓練。
 2. **跨族群分佈差異（Domain Shift）**：NHANES 為美國人口常模，亞洲/台灣高齡族群之體型與基準骨密普遍偏小；系統目前採用 T-score 最低部位原則與幾何比例特徵進行校準，未來可直接導入台灣本土世代常模進行再校準。
 3. **臨床決策輔助邊界聲明**：本系統為臨床決策支援系統（CDSS）與醫病溝通工具，所有輸出之健保判定與手術預警建議皆為輔助參考，不取代主治專科醫師之獨立臨床處方與手術決策權。
+
+以清楚的來源、數值、SHAP 解釋、缺件與限制提示，支持使用者理解與人工判斷；透明度不保證 100% 信任或正確。醫病溝通建議、文件統整及 SOAP／健保申報相關摘要先產生草稿，允許醫師修改與確認；預期協助減少行政整理負擔，實際節省工時尚未量測，本期不宣稱已串接正式電子病歷或申報系統。
