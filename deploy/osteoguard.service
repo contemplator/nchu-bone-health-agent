@@ -1,0 +1,17 @@
+[Unit]
+Description=OsteoGuard AI Agent CDSS FastAPI Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/nchu-bone-health-agent
+ExecStart=/var/www/nchu-bone-health-agent/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000 --workers 2
+Restart=always
+RestartSec=5
+Environment=PYTHONPATH=/var/www/nchu-bone-health-agent
+EnvironmentFile=/var/www/nchu-bone-health-agent/.env
+
+[Install]
+WantedBy=multi-user.target
+

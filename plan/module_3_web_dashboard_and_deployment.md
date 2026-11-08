@@ -89,33 +89,33 @@
 ## 二、進度追蹤檢查清單 (Checklist)
 
 ### 階段 1：FastAPI 骨架與路由
-- [ ] 1.1 建立 `app.py`，配置靜態目錄 `static/` 與模板目錄 `templates/`
-- [ ] 1.2 定義 Pydantic 資料結構：`PatientCaseRequest` 與 `CDSSResponse`
-- [ ] 1.3 實作 `/api/analyze` 路由並串聯測試用 Dummy 回傳
-- [ ] 1.4 實作 `/api/copilot/chat` 路由
+- [x] 1.1 建立 `app.py`，配置靜態目錄 `static/` 與模板目錄 `templates/`
+- [x] 1.2 定義 Pydantic 資料結構：`PatientCaseRequest` 與 `CDSSResponse`
+- [x] 1.3 實作 `/api/analyze` 路由並串聯測試用 Dummy 回傳
+- [x] 1.4 實作 `/api/copilot/chat` 路由
 
 ### 階段 2：現代 Tailwind + Alpine.js 介面開發
-- [ ] 2.1 引入 Tailwind CSS CDN 與 Alpine.js，建構響應式 Header 與佈局
-- [ ] 2.2 刻劃左側個案輸入表單（年齡、DXA 各部位、手術類型、共病、用藥日期）
-- [ ] 2.3 刻劃面板一：骨密風險等級、SHAP 長條圖（ApexCharts）與螺釘鬆脫警報卡
-- [ ] 2.4 刻劃面板二：健保 5.6 節給付審查卡（核准狀態、條款理由、缺件核扣提醒）
-- [ ] 2.5 刻劃面板三：用藥時間軸與換藥甘特圖（倒數計時、逾期斷藥反彈紅燈）
-- [ ] 2.6 刻劃面板四：牙科 MRONJ 衛教圖卡、運動營養紅綠燈與一鍵複製 SOAP 病歷
-- [ ] 2.7 刻劃右下角浮動 AI Copilot 對話抽屜
+- [x] 2.1 引入 Tailwind CSS CDN 與 Alpine.js，建構響應式 Header 與佈局
+- [x] 2.2 刻劃左側個案輸入表單（年齡、DXA 各部位、手術類型、共病、用藥日期）
+- [x] 2.3 刻劃面板一：骨密風險等級、SHAP 長條圖（ApexCharts）與螺釘鬆脫警報卡
+- [x] 2.4 刻劃面板二：健保 5.6 節給付審查卡（核准狀態、條款理由、缺件核扣提醒）
+- [x] 2.5 刻劃面板三：用藥時間軸與換藥甘特圖（倒數計時、逾期斷藥反彈紅燈）
+- [x] 2.6 刻劃面板四：牙科 MRONJ 衛教圖卡、運動營養紅綠燈與一鍵複製 SOAP 病歷
+- [x] 2.7 刻劃右下角浮動 AI Copilot 對話抽屜
 
 ### 階段 3：4 組臨床示範案例快選 (Presets)
-- [ ] 3.1 建立 `static/js/presets.js`，定義 4 組經典個案參數
-- [ ] 3.2 於導航欄加入案例 1～案例 4 按鈕，點擊後透過 Alpine.js 自動填入表單並觸發計算
-- [ ] 3.3 驗證 4 組案例呈現之結果面板均符合預期臨床邏輯
+- [x] 3.1 建立 `static/js/presets.js`，定義 4 組經典個案參數
+- [x] 3.2 於導航欄加入案例 1～案例 4 按鈕，點擊後透過 Alpine.js 自動填入表單並觸發計算
+- [x] 3.3 驗證 4 組案例呈現之結果面板均符合預期臨床邏輯
 
 ### 階段 4：跨模組對接與聯調
 - [ ] 4.1 對接組員 A 之 `predict_bone_risk()` 與 SHAP 解釋函式
 - [ ] 4.2 對接組員 B 之健保審核、圍術期預警、換藥排程與 Copilot SOAP 函式
-- [ ] 4.3 進行例外處理（如輸入缺值時提示警告，API Key 缺失時無縫降級為 Mock 模式）
+- [x] 4.3 進行例外處理（如輸入缺值時提示警告，API Key 缺失時無縫降級為 Mock 模式）
 
 ### 階段 5：VPS 部署與展示準備
-- [ ] 5.1 整理最終 `requirements.txt`
-- [ ] 5.2 撰寫 `ecosystem.config.js`（PM2 啟動設定）
-- [ ] 5.3 撰寫 `deploy/README_DEPLOY.md` 說明如何在 VPS 上一鍵執行與 Nginx 設定
+- [x] 5.1 整理最終 `requirements.txt`
+- [x] 5.2 撰寫 `ecosystem.config.js`（PM2 啟動設定）
+- [x] 5.3 撰寫 `deploy/README_DEPLOY.md` 說明如何在 VPS 上一鍵執行與 Nginx 設定
 - [ ] 5.4 於 VPS 上實際部署並測試外部存取流暢度
 
