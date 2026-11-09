@@ -60,6 +60,11 @@ jobs:
           port: ${{ secrets.VPS_PORT || 22 }}
           script: |
             set -e
+            # 自動載入 NVM 與常見 Node / PM2 環境路徑
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            export PATH=$PATH:/usr/local/bin:/usr/bin:$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:$HOME/.npm-global/bin
+
             echo "🚀 [1/4] 進入專案目錄: ${{ secrets.VPS_TARGET_DIR }}"
             cd ${{ secrets.VPS_TARGET_DIR }}
 
