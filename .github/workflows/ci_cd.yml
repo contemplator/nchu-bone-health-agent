@@ -1,0 +1,84 @@
+name: OsteoGuard CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - feat/web-dashboard
+  pull_request:
+    branches:
+      - main
+      - feat/web-dashboard
+
+jobs:
+  # ==============================================================================
+  # Job 1: CI 自動化測試 (Automated Testing)
+  # ==============================================================================
+  test:
+    name: Run Pytest Suite
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 檢出程式碼 (Checkout Code)
+        uses: actions/checkout@v4
+
+      - name: 設定 Python 環境 (Setup Python 3.12)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: 安裝相依套件 (Install Dependencies)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 執行端到端與 API 單元測試 (Run Pytest)
+        env:
+          PYTHONPATH: .
+          LLM_PROVIDER: mock
+        run: |
+          pytest tests/test_api.py -v
+
+  # ==============================================================================
+  # Job 2: CD 自動化部署至 VPS (Automated Deployment)
+  # 僅在測試通過且為 Push 事件時執行 (PR 僅跑測試不觸發部屬)
+  # ==============================================================================
+  deploy:
+    name: Deploy to VPS
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 透過 SSH 連線至 VPS 執行遠端部署指令
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e
+            echo "🚀 [1/4] 進入專案目錄: ${{ secrets.VPS_TARGET_DIR }}"
+            cd ${{ secrets.VPS_TARGET_DIR }}
+
+            echo "📥 [2/4] 拉取最新程式碼 (分支: ${{ github.ref_name }})"
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git pull origin ${{ github.ref_name }}
+
+            echo "📦 [3/4] 更新 Python 虛擬環境套件"
+            if [ ! -d "venv" ]; then
+              python3 -m venv venv
+            fi
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+
+            echo "🔄 [4/4] 透過 PM2 平滑重啟 OsteoGuard CDSS 服務"
+            pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js
+            pm2 save
+
+            echo "✅ 部署完成！OsteoGuard AI Agent 已成功上線並運作於 VPS！"
+

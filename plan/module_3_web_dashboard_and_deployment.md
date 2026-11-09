@@ -117,5 +117,6 @@
 - [x] 5.1 整理最終 `requirements.txt`
 - [x] 5.2 撰寫 `ecosystem.config.js`（PM2 啟動設定）
 - [x] 5.3 撰寫 `deploy/README_DEPLOY.md` 說明如何在 VPS 上一鍵執行與 Nginx 設定
-- [ ] 5.4 於 VPS 上實際部署並測試外部存取流暢度
+- [x] 5.4 建立 GitHub Actions CI/CD 自動化測試與 VPS 自動部署工作流 (`.github/workflows/ci_cd.yml`)
+- [ ] 5.5 於 VPS 上設定 GitHub Secrets 並實際觸發外部自動部署測試
 
